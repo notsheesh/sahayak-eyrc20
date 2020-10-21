@@ -1,0 +1,8 @@
+# big files 
+sahayak_bot
+# catkin files 
+build
+devel
+logs
+.catkin_tools
+.catkin_workspace
