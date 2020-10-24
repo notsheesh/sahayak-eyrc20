@@ -1,8 +1,9 @@
-#!/usr/bin/python3
+#!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
 """
-authors: 
+Template code for task1
+authors: eyantra team
 """
 
 # imports 
@@ -44,11 +45,11 @@ def laser_callback(msg):
 
     _sec = 720//5
     regions = {
-        'bright': min(min(msg.ranges[_sec*0 : _sec*1-1]), _range_max),
-        'fright': min(min(msg.ranges[_sec*1 : _sec*2-1]), _range_max),
-        'front' : min(min(msg.ranges[_sec*2 : _sec*3-1]), _range_max),
-        'fleft' : min(min(msg.ranges[_sec*3 : _sec*4-1]), _range_max),
-        'bleft' : min(min(msg.ranges[_sec*4 : _sec*5-1]), _range_max),
+        'bright': ,
+        'fright': ,
+        'front' : ,
+        'fleft' : ,
+        'bleft' : ,
     }
 
 # Control loop 
