@@ -1,0 +1,11 @@
+
+<launch>
+
+    <node pkg="pkg_ros_basics" name="turtle_rotate" type="node_turtle_revolve.py" output="screen"> 
+  
+    </node>
+    <node pkg="turtlesim" name="turtlesim_node" type="turtlesim_node" > 
+  
+    </node>
+  
+</launch>
