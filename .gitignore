@@ -5,4 +5,5 @@ build
 devel
 logs
 .catkin_tools
-.catkin_workspace.vscode
+.catkin_workspace
+.vscode
