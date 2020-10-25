@@ -21,20 +21,19 @@ _range_max = 10
 _rate = 100 
 
 # goal pose for debugging 
-_goal_x  = 5
-_goal_y  = 3
+_goal_x  = 10
+_goal_y  = 10
 _goal_th = 0
 
 # for way points
-_x_low   =  0 
-_x_high  = 10
+_x_low   =  20
+_x_high  =  50
 _x_step  =  2
-_x_scale =  2
+_x_scale =  10
 
 # controller gains 
 _Kp     = 0.06
 _Ktheta = 0.3
-
 # Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10/ 2:27 am
 
 # sensor data containers  
@@ -95,31 +94,30 @@ def laser_callback(msg):
 	}
 
 # Helper functions 
-def _getDeviation(current_pose, goal_pose):
+def _getDeviation(_current_pose, _goal_pose):
 	""" get deviation between two poses """
 
 	# distance 
-	del_x = goal_pose[0] - current_pose[0]
-	del_y = goal_pose[1] - current_pose[1]
+	_del_x = _goal_pose[0] - _current_pose[0]
+	_del_y = _goal_pose[1] - _current_pose[1]
 
 	# angle  
-	theta = atan2( 				 # arctan(del_y/del_x)
-		goal_pose[1]  - current_pose[1], # del y 
-		goal_pose[0]  - current_pose[0]) # del x
+	theta = atan2( 				 # arctan(_del_y/_del_x)
+		_goal_pose[1]  - _current_pose[1], # del y 
+		_goal_pose[0]  - _current_pose[0]) # del x
 
 	# deviation  
-	distance = sqrt(pow(del_x, 2) + pow(del_y, 2))
-	del_theta = theta - current_pose[2]
-	print("Distance: {} | Angle: {}".format(distance, del_theta)) # for debugging 
+	_distance = sqrt(pow(_del_x, 2) + pow(_del_y, 2))
+	_del_theta = theta - _current_pose[2]
 
-	return [distance, del_theta]
+	return [_distance, _del_theta]
 
 # For testing
-def _setTestGoalPose(x = 2, y = 2, theta = 0):
+def _setTestGoalPose(_x = 2, _y = 2, _theta = 0):
 	_goal_pose = Pose()
-	_goal_pose.position   .x = x
-	_goal_pose.position   .y = y
-	_goal_pose.orientation.z = theta
+	_goal_pose.position   .x = _x
+	_goal_pose.position   .y = _y
+	_goal_pose.orientation.z = _theta
 	goal_pose = [
 		_goal_pose.position   .x,
 		_goal_pose.position   .y,
@@ -146,53 +144,63 @@ def control_loop():
 	pub.publish(velocity_msg)
 
 	# Set test goal (in params above)
-	# goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
+	goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
 	
 	# buffer mini goals!
 	trajectory = lambda x: 2 * sin(x) * sin(x/2)
 	waypoint_buffer = Waypoints(trajectory)
+	num_wp = len(waypoint_buffer) # for tracking progress 
 
 	rospy.Rate(1).sleep() # wait for first odom value
 	while not rospy.is_shutdown():
-		##################### go to goal ################################
-		while(_getDeviation(pose, goal_pose)[0] > _goal_tolerance):
+		while (len(waypoint_buffer)):
+			##################### pick first mini goal #######################
+			goal_pose = waypoint_buffer.pop(0)
+			##################### go to mini goal ############################
+			while(
+				_getDeviation(pose, goal_pose)[0] > _goal_tolerance):
 
-			if(_getDeviation(pose, goal_pose)[0] > 10):
-				print("Controller has become unstable. Halting...")
-				stop_vel = Twist() 
-				pub.publish(stop_vel)
-				return
+				print("[INFO] Distance: {} | Angle: {}".format(
+						round(_getDeviation(pose, goal_pose)[0], 2), round(_getDeviation(pose, goal_pose)[1]), 2)) # for debugging 
 
-			# print("Pose~: {}".format(pose)) # for debugging 
-			# proportional controller 
-			x = _Kp     * _getDeviation(pose, goal_pose)[0] 
-			z = _Ktheta * _getDeviation(pose, goal_pose)[1] 
+				if(_getDeviation(pose, goal_pose)[0] > 10):
+					print("[ERR] Controller has become unstable. Halting...")
+					stop_vel = Twist() 
+					pub.publish(stop_vel)
+					return
 
-		#################################################################
-		# algorithm for obstacle course goes here 
-		# TODO: write algorithm to avoid concave obstacles
-		#################################################################
+				# print("Pose~: {}".format(pose)) # for debugging 
+				# proportional controller 
+				x = _Kp     * _getDeviation(pose, goal_pose)[0] 
+				z = _Ktheta * _getDeviation(pose, goal_pose)[1] 
 
-			# log command 
-			velocity_msg.linear .x  = x 
-			velocity_msg.angular.z  = z 
-			# for sanity 
-			velocity_msg.linear .y  = 0
-			velocity_msg.linear .z  = 0
-			velocity_msg.angular.x  = 0
-			velocity_msg.angular.y  = 0
-			pub.publish(velocity_msg)
+			#################################################################
+			# algorithm for obstacle course goes here 
+			# TODO: write algorithm to avoid concave obstacles
+			#################################################################
 
-			# log iteration 
-			print("Controller message pushed at {}".format(rospy.get_time()))
+				# log command 
+				velocity_msg.linear .x  = x 
+				velocity_msg.angular.z  = z 
+				# for sanity 
+				velocity_msg.linear .y  = 0
+				velocity_msg.linear .z  = 0
+				velocity_msg.angular.x  = 0
+				velocity_msg.angular.y  = 0
+				pub.publish(velocity_msg)
 
-			# zzz for <_rate>hz  
-			rate.sleep()
+				# log iteration 
+				# print("Controller message pushed at {}".format(rospy.get_time()))
+
+				# zzz for <_rate>hz  
+				rate.sleep()
+				print("[INFO] Reached goal {} of {}: {}".format(
+					 num_wp - len(waypoint_buffer), num_wp, goal_pose))
 
 		# stop & break control loop 
 		stop_vel = Twist() 
 		pub.publish(stop_vel)
-		print("Reached goal")
+		print("[INFO] Reached goal!")
 		break 
 
 if __name__ == '__main__':
