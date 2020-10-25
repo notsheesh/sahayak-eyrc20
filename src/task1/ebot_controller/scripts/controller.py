@@ -6,11 +6,11 @@ authors:
 """
 
 # imports 
-import math
 import rospy 
 from nav_msgs.msg import Odometry 
-from geometry_msgs.msg import Twist, Pose
 from sensor_msgs.msg import LaserScan 
+from math import sin, cos, atan2, atan, sqrt
+from geometry_msgs.msg import Twist, Pose
 from tf.transformations import euler_from_quaternion
 
 # parameters !!!
@@ -25,12 +25,17 @@ _goal_x  = 5
 _goal_y  = 3
 _goal_th = 0
 
+# for way points
+_x_low   =  0 
+_x_high  = 10
+_x_step  =  2
+_x_scale =  2
+
 # controller gains 
 _Kp     = 0.06
 _Ktheta = 0.3
 
 # Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10/ 2:27 am
-
 
 # sensor data containers  
 pose = []
@@ -38,10 +43,25 @@ regions = {}
 
 # Waypoint Generator 
 def Waypoints(t):
-	"""Generates waypoints along a given continuous and differentiable curve"""
-	x = -1 
-	y = -1 
-	return [x, y]
+	"""
+		generates waypoints along a given 
+		continuous and differentiable curve t
+	"""
+	global _x_low, _x_high, _x_step, _x_scale
+
+	# que x coordinates 
+	xs = [x/_x_scale for x in range(_x_low, _x_high, _x_step)]
+
+	# derivative of curve t
+	t_dash = lambda x: cos(x/2) * sin(x) + 2 * sin(x/2) * cos(x)
+
+	# angle of slope @ f'(x)
+	t_theta = lambda x: atan(t_dash(x))
+
+	# mini goal waypoint = [x, y, theta]
+	waypoint_buffer = [[x, t(x), t_theta(x)] for x in xs]
+
+	return waypoint_buffer
 
 # Odom callback  
 def odom_callback(data):
@@ -58,7 +78,6 @@ def odom_callback(data):
 		]
 	# print("Pose: {}".format(pose)) # for debugging 
 	rospy.Rate(_rate).sleep()
-
 
 # Laser callback  
 def laser_callback(msg):
@@ -84,12 +103,12 @@ def _getDeviation(current_pose, goal_pose):
 	del_y = goal_pose[1] - current_pose[1]
 
 	# angle  
-	theta = math.atan2( 				# arctan(del_y/del_x)
+	theta = atan2( 				 # arctan(del_y/del_x)
 		goal_pose[1]  - current_pose[1], # del y 
 		goal_pose[0]  - current_pose[0]) # del x
 
 	# deviation  
-	distance = math.sqrt(pow(del_x, 2) + pow(del_y, 2))
+	distance = sqrt(pow(del_x, 2) + pow(del_y, 2))
 	del_theta = theta - current_pose[2]
 	print("Distance: {} | Angle: {}".format(distance, del_theta)) # for debugging 
 
@@ -127,7 +146,11 @@ def control_loop():
 	pub.publish(velocity_msg)
 
 	# Set test goal (in params above)
-	goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
+	# goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
+	
+	# buffer mini goals!
+	trajectory = lambda x: 2 * sin(x) * sin(x/2)
+	waypoint_buffer = Waypoints(trajectory)
 
 	rospy.Rate(1).sleep() # wait for first odom value
 	while not rospy.is_shutdown():
@@ -136,7 +159,9 @@ def control_loop():
 
 			if(_getDeviation(pose, goal_pose)[0] > 10):
 				print("Controller has become unstable. Halting...")
-				break
+				stop_vel = Twist() 
+				pub.publish(stop_vel)
+				return
 
 			# print("Pose~: {}".format(pose)) # for debugging 
 			# proportional controller 
