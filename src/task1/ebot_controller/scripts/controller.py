@@ -9,7 +9,7 @@ authors:
 import rospy 
 from nav_msgs.msg import Odometry 
 from sensor_msgs.msg import LaserScan 
-from math import sin, cos, atan2, atan, sqrt
+from math import sin, cos, atan2, atan, sqrt, pi
 from geometry_msgs.msg import Twist, Pose
 from tf.transformations import euler_from_quaternion
 
@@ -25,19 +25,13 @@ _goal_x  = 10
 _goal_y  = 10
 _goal_th = 0
 
-# for way points
-_x_low   =  20  # do not change 
-_x_high  =  80
-_x_step  =  2
-_x_scale =  10
-
 # controller gains 
-_Kp     = 0.08
-_Ktheta = 0.9
+_Kp     = 0.14
+_Ktheta = 0.98
+
 
 # Kp = 0.08, Ktheta = 0.9, x_high = 80 worked good as of 26/10 5:00 pm
 # Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10 2:27 am
-
 
 # sensor data containers  
 pose = []
@@ -49,10 +43,8 @@ def Waypoints(t):
 		generates waypoints along a given 
 		continuous and differentiable curve t
 	"""
-	global _x_low, _x_high, _x_step, _x_scale
-
-	# que x coordinates 
-	xs = [x/_x_scale for x in range(_x_low, _x_high, _x_step)]
+	# que x coordinates (divide 2pi into checkpoints) 
+	xs = [(2 * pi * x)/10 for x in range(11)]
 
 	# derivative of curve t
 	t_dash = lambda x: cos(x/2) * sin(x) + 2 * sin(x/2) * cos(x)
@@ -172,11 +164,12 @@ def control_loop():
 				print("[INFO] Distance: {} | Angle: {}".format(
 						round(_getDeviation(pose, goal_pose)[0], 2), round(_getDeviation(pose, goal_pose)[1]), 2)) # for debugging 
 
-				if(_getDeviation(pose, goal_pose)[0] > 10):
-					print("[ERR] Controller has become unstable. Halting...")
-					stop_vel = Twist() 
-					pub.publish(stop_vel)
-					return
+				# for debugging 
+				# if(_getDeviation(pose, goal_pose)[0] > 10):
+				# 	print("[ERR] Controller has become unstable. Halting...")
+				# 	stop_vel = Twist() 
+				# 	pub.publish(stop_vel)
+				# 	return
 
 				# print("Pose~: {}".format(pose)) # for debugging 
 				# proportional controller 
@@ -185,7 +178,10 @@ def control_loop():
 
 			#################################################################
 			# algorithm for obstacle course goes here 
-			# TODO: write algorithm to avoid concave obstacles
+			# TODO: write bug algorithm 
+				# if(len(waypoint_buffer) == 1):
+					# x = -1
+					# z = -1
 			#################################################################
 
 				# log command 
