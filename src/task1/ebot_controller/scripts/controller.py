@@ -14,7 +14,7 @@ from geometry_msgs.msg import Twist, Pose
 from tf.transformations import euler_from_quaternion
 
 # parameters !!!
-_goal_tolerance = 0.5
+_goal_tolerance = 0.9
 _range_max = 10
 
 # for debugging choose sth like 1Hz 
@@ -26,15 +26,18 @@ _goal_y  = 10
 _goal_th = 0
 
 # for way points
-_x_low   =  20
-_x_high  =  50
+_x_low   =  20  # do not change 
+_x_high  =  80
 _x_step  =  2
 _x_scale =  10
 
 # controller gains 
-_Kp     = 0.06
-_Ktheta = 0.3
-# Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10/ 2:27 am
+_Kp     = 0.08
+_Ktheta = 0.9
+
+# Kp = 0.08, Ktheta = 0.9, x_high = 80 worked good as of 26/10 5:00 pm
+# Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10 2:27 am
+
 
 # sensor data containers  
 pose = []
@@ -146,11 +149,17 @@ def control_loop():
 	# Set test goal (in params above)
 	goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
 	
-	# buffer mini goals!
+	# task 1.0: traverse the specified curve 
 	trajectory = lambda x: 2 * sin(x) * sin(x/2)
+	# task 1.1:  buffer mini goals!
 	waypoint_buffer = Waypoints(trajectory)
-	num_wp = len(waypoint_buffer) # for tracking progress 
 
+	# task 2.0: go to goal base 
+	# TODO: find the coordinates of final goal & populate this stamp
+	# big_goal = Pose() 
+	# waypoint_buffer.append(big_goal)
+
+	_num_wp = len(waypoint_buffer) # for debugging 
 	rospy.Rate(1).sleep() # wait for first odom value
 	while not rospy.is_shutdown():
 		while (len(waypoint_buffer)):
@@ -195,12 +204,15 @@ def control_loop():
 				# zzz for <_rate>hz  
 				rate.sleep()
 				print("[INFO] Reached goal {} of {}: {}".format(
-					 num_wp - len(waypoint_buffer), num_wp, goal_pose))
+					 _num_wp - len(waypoint_buffer), _num_wp, goal_pose))
+				
+				if(_num_wp == 1):
+					print("[INFO] Trajectory executed, planning final goal")
 
 		# stop & break control loop 
 		stop_vel = Twist() 
 		pub.publish(stop_vel)
-		print("[INFO] Reached goal!")
+		print("[INFO] Reached final goal!")
 		break 
 
 if __name__ == '__main__':
