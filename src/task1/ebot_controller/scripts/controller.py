@@ -22,19 +22,19 @@ _samples = 20
 _rate = 100 
 
 # controller gains 
-_Kp     = 0.14
-_Ktheta = 0.98
+_Kp     = 0.18
+_Ktheta = 2
 
 # Kp = 0.14, Ktheta = 0.98, samples = 20 works good as of 28/10 2:23 pm
 
 # for bug algorithm 
 # obstacle repulsion 
-f_th = 1.5 
-fr_th = fl_th = 2
+f_th = 2.3
+fr_th = fl_th = 1.2
 # commands 
 frwd = 0.6
-steer = 0.4
-sharp = 0.6
+steer = 0.5
+sharp = 0.7
 
 # for super precision 
 br_th = bl_th = 2 
@@ -49,7 +49,8 @@ def Waypoints(t):
 		continuous and differentiable curve t
 	"""
 	# que x coordinates 
-	xs = [(2 * pi * x)/_samples for x in range(_samples)]
+	offset = 2
+	xs = [(2 * pi * x)/_samples for x in range(_samples+offset)]
 
 	# mini goal waypoint = [x, y, theta]
 
@@ -243,7 +244,7 @@ def control_loop():
 					z = _Ktheta * getDev(pose, goal_pose)[1] 
 
 				elif checkCollision(): 
-					# finite state machine 
+					# finite state machine 	
 					x, z = bugFSM()
 
 				else: 
