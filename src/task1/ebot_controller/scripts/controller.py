@@ -22,8 +22,8 @@ _samples = 20
 _rate = 100 
 
 # controller gains 
-_Kp     = 0.18
-_Ktheta = 2
+_Kp     = 0.38
+_Ktheta = 4.0
 
 # Kp = 0.14, Ktheta = 0.98, samples = 20 works good as of 28/10 2:23 pm
 
@@ -31,10 +31,11 @@ _Ktheta = 2
 # obstacle repulsion 
 f_th = 2.3
 fr_th = fl_th = 1.2
+
 # commands 
 frwd = 0.6
-steer = 0.5
-sharp = 0.7
+steer = 0.7
+sharp = 0.8
 
 # for super precision 
 br_th = bl_th = 2 
@@ -49,17 +50,12 @@ def Waypoints(t):
 		continuous and differentiable curve t
 	"""
 	# que x coordinates 
-	offset = 2
-	xs = [(2 * pi * x)/_samples for x in range(_samples+offset)]
-
-	# mini goal waypoint = [x, y, theta]
-
-	'''
-	Note: * 0 to skip the trajectory, only for debugging the fsm  
-	'''
-
+	xs = [(2 * pi * x)/_samples for x in range(_samples)]
 	waypoint_buffer = [[x, t(x)] for x in xs]
 
+	# to remove bias after the trajectory 
+	waypoint_buffer.append([7, 0])
+	
 	return waypoint_buffer
 
 def odom_callback(data):
@@ -113,16 +109,14 @@ def checkCollision():
 	front  = regions['front' ]  < f_th
 	fleft  = regions['fleft' ]  < fl_th
 	# bleft  = regions['bleft' ]  < bl_th
+
+	print("front: {}".format(regions['front']))
+
 	bleft = False
 	bright = False
 	check = bright or fright or front or fleft or bleft
 	return check
 
-'''
-reference for fsm: 
-step 2 
-https://www.theconstructsim.com/exploring-ros-2-wheeled-robot-part-5/
-'''
 def bugFSM():
 
 	x = 0
@@ -245,6 +239,8 @@ def control_loop():
 
 				elif checkCollision(): 
 					# finite state machine 	
+					global _goal_tolerance
+					_goal_tolerance = 0.1
 					x, z = bugFSM()
 
 				else: 
