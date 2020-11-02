@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-authors: 
+team id: 1071
+authors: preet, shreesh, gokul, abhiroop 
 """
 
 # imports 
 import rospy 
+import time
 from nav_msgs.msg import Odometry 
 from sensor_msgs.msg import LaserScan 
 from math import sin, cos, atan2, atan, sqrt, pi
@@ -14,50 +16,49 @@ from geometry_msgs.msg import Twist, Pose
 from tf.transformations import euler_from_quaternion
 
 # parameters !!!
-_goal_tolerance = 0.9
+_goal_tolerance = 0.3
+l_th = 1
 _range_max = 10
-
-# for debugging choose sth like 1Hz 
+_samples = 20
 _rate = 100 
 
-# goal pose for debugging 
-_goal_x  = 10
-_goal_y  = 10
-_goal_th = 0
-
 # controller gains 
-_Kp     = 0.14
-_Ktheta = 0.98
+_Kp     = 0.38
+_Ktheta = 4.0
 
+# Kp = 0.14, Ktheta = 0.98, samples = 20 works good as of 28/10 2:23 pm
 
-# Kp = 0.08, Ktheta = 0.9, x_high = 80 worked good as of 26/10 5:00 pm
-# Kp = 0.06 & Ktheta = 0.3, though sub par, worked as of 25/10 2:27 am
+# for bug algorithm 
+# obstacle repulsion 
+f_th = 2.3
+fr_th = fl_th = 1.2
+
+# commands 
+frwd = 0.6
+steer = 0.7
+sharp = 0.8
+
+# for super precision 
+br_th = bl_th = 2 
 
 # sensor data containers  
 pose = []
 regions = {}
 
-# Waypoint Generator 
 def Waypoints(t):
 	"""
 		generates waypoints along a given 
 		continuous and differentiable curve t
 	"""
-	# que x coordinates (divide 2pi into checkpoints) 
-	xs = [(2 * pi * x)/10 for x in range(11)]
+	# que x coordinates 
+	xs = [(2 * pi * x)/_samples for x in range(_samples)]
+	waypoint_buffer = [[x, t(x)] for x in xs]
 
-	# derivative of curve t
-	t_dash = lambda x: cos(x/2) * sin(x) + 2 * sin(x/2) * cos(x)
-
-	# angle of slope @ f'(x)
-	t_theta = lambda x: atan(t_dash(x))
-
-	# mini goal waypoint = [x, y, theta]
-	waypoint_buffer = [[x, t(x), t_theta(x)] for x in xs]
-
+	# to remove bias after the trajectory 
+	waypoint_buffer.append([7, 0])
+	
 	return waypoint_buffer
 
-# Odom callback  
 def odom_callback(data):
 	global pose
 	# convert quaternion to euler
@@ -70,16 +71,13 @@ def odom_callback(data):
 			data.pose.pose.position.y, 
 			euler_from_quaternion([x, y, z, w])[2]
 		]
-	# print("Pose: {}".format(pose)) # for debugging 
 	rospy.Rate(_rate).sleep()
 
-# Laser callback  
 def laser_callback(msg):
 	global regions
 	global _range_max
 
 	_sec = 720//5
-	# TODO: select range for optimum perception 
 	regions = {
 		'bright': min(min(msg.ranges[_sec*0 : _sec*1-1]), _range_max),
 		'fright': min(min(msg.ranges[_sec*1 : _sec*2-1]), _range_max),
@@ -88,39 +86,107 @@ def laser_callback(msg):
 		'bleft' : min(min(msg.ranges[_sec*4 : _sec*5-1]), _range_max),
 	}
 
-# Helper functions 
-def _getDeviation(_current_pose, _goal_pose):
+def getDev(_current, _goal):
 	""" get deviation between two poses """
-
-	# distance 
-	_del_x = _goal_pose[0] - _current_pose[0]
-	_del_y = _goal_pose[1] - _current_pose[1]
-
 	# angle  
 	theta = atan2( 				 # arctan(_del_y/_del_x)
-		_goal_pose[1]  - _current_pose[1], # del y 
-		_goal_pose[0]  - _current_pose[0]) # del x
+		_goal[1]  - _current[1], # del y 
+		_goal[0]  - _current[0]) # del x
+	_del_theta = theta - _current[2]
 
-	# deviation  
-	_distance = sqrt(pow(_del_x, 2) + pow(_del_y, 2))
-	_del_theta = theta - _current_pose[2]
+	# distance   
+	_distance = sqrt(
+		pow(_goal[0] - _current[0], 2) 
+		+ 
+		pow(_goal[1] - _current[1], 2))
 
 	return [_distance, _del_theta]
 
-# For testing
-def _setTestGoalPose(_x = 2, _y = 2, _theta = 0):
-	_goal_pose = Pose()
-	_goal_pose.position   .x = _x
-	_goal_pose.position   .y = _y
-	_goal_pose.orientation.z = _theta
-	goal_pose = [
-		_goal_pose.position   .x,
-		_goal_pose.position   .y,
-		_goal_pose.orientation.z,
-	]
-	return goal_pose
+def checkCollision():
+	global regions
+	global f_th, fr_th, fl_th 
+	# bright = regions['bright']  < br_th
+	fright = regions['fright']  < fr_th
+	front  = regions['front' ]  < f_th
+	fleft  = regions['fleft' ]  < fl_th
+	# bleft  = regions['bleft' ]  < bl_th
 
-# Control loop 
+	bleft = False
+	bright = False
+	check = bright or fright or front or fleft or bleft
+	return check
+
+def bugFSM():
+
+	x = 0
+	z = 0	
+
+	state = None
+	command = None
+
+	# extract laser scan values 
+	fleft = regions['fleft']
+	front = regions['front']
+	fright = regions['fright']
+
+	# motion planning logic
+	if front > l_th: 
+		if fleft > l_th and fright > l_th:
+			state = 'Nothing ahead'
+			command = 'Go straight'
+			x = frwd
+			z = 0
+
+		elif fleft > l_th and fright < l_th:
+			state = 'fRight'
+			command = 'Turn left'
+			x = 0
+			z = steer
+
+		elif fleft < l_th and fright > l_th:
+			state = 'fLeft'
+			command = 'Turn right'
+			x = 0
+			z = -1 * steer
+
+		else:
+			state = 'fRight & fLeft'
+			command = 'Narrow path'
+			x = 0
+			z = sharp
+
+	elif front < l_th:
+		if fleft > l_th and fright > l_th :
+			state = 'Obstacle ahead'
+			command = 'Turn fleft'
+			x = 0
+			z = steer
+
+		elif fleft > l_th and fright < l_th:
+			state = 'fRight'
+			command = 'Turn left'
+			x = 0
+			z = steer
+
+		elif fleft < l_th and fright > l_th:
+			state = 'Front & fLeft'
+			command = 'Turn right'
+			x = 0
+			z = -1 * steer
+
+		else:
+			state = 'Dead end (F, fR, fL)'
+			command = 'Reverse'
+			x = -1 * frwd
+			z = 0
+	else: 
+		state = 'Lost'
+		command = 'Abort'
+		x = -1
+		z = -1 
+
+	return [x, z]
+
 def control_loop():
 	# topics 
 	_odom = '/odom'
@@ -138,77 +204,49 @@ def control_loop():
 	velocity_msg.angular.z = 0
 	pub.publish(velocity_msg)
 
-	# Set test goal (in params above)
-	goal_pose = _setTestGoalPose(_goal_x, _goal_y, _goal_th)
-	
 	# task 1.0: traverse the specified curve 
-	trajectory = lambda x: 2 * sin(x) * sin(x/2)
-	# task 1.1:  buffer mini goals!
+	trajectory 		= lambda x: 2 * sin(x) * sin(x/2)
 	waypoint_buffer = Waypoints(trajectory)
 
 	# task 2.0: go to goal base 
-	# TODO: find the coordinates of final goal & populate this stamp
-	# big_goal = Pose() 
-	# waypoint_buffer.append(big_goal)
+	big_goal = [12.0, 0.0]
+	waypoint_buffer.append(big_goal)
 
-	_num_wp = len(waypoint_buffer) # for debugging 
-	rospy.Rate(1).sleep() # wait for first odom value
+	_num_wp = len(waypoint_buffer) # for debugging
+	rospy.Rate(1).sleep() 		   # wait for first odom value
+	
 	while not rospy.is_shutdown():
 		while (len(waypoint_buffer)):
+
 			##################### pick first mini goal #######################
 			goal_pose = waypoint_buffer.pop(0)
+
 			##################### go to mini goal ############################
-			while(
-				_getDeviation(pose, goal_pose)[0] > _goal_tolerance):
+			while(getDev(pose, goal_pose)[0] > _goal_tolerance):
+				if not checkCollision():
+					# proportional controller 
+					x = _Kp     * getDev(pose, goal_pose)[0] 
+					z = _Ktheta * getDev(pose, goal_pose)[1] 
 
-				print("[INFO] Distance: {} | Angle: {}".format(
-						round(_getDeviation(pose, goal_pose)[0], 2), round(_getDeviation(pose, goal_pose)[1]), 2)) # for debugging 
+				elif checkCollision(): 
+					# finite state machine 	
+					# global _goal_tolerance
+					# _goal_tolerance = 0.1
+					x, z = bugFSM()
 
-				# for debugging 
-				# if(_getDeviation(pose, goal_pose)[0] > 10):
-				# 	print("[ERR] Controller has become unstable. Halting...")
-				# 	stop_vel = Twist() 
-				# 	pub.publish(stop_vel)
-				# 	return
+				else: 
+					print("[ERR] Invalid")
 
-				# print("Pose~: {}".format(pose)) # for debugging 
-				# proportional controller 
-				x = _Kp     * _getDeviation(pose, goal_pose)[0] 
-				z = _Ktheta * _getDeviation(pose, goal_pose)[1] 
-
-			#################################################################
-			# algorithm for obstacle course goes here 
-			# TODO: write bug algorithm 
-				# if(len(waypoint_buffer) == 1):
-					# x = -1
-					# z = -1
-			#################################################################
-
-				# log command 
 				velocity_msg.linear .x  = x 
 				velocity_msg.angular.z  = z 
-				# for sanity 
-				velocity_msg.linear .y  = 0
-				velocity_msg.linear .z  = 0
-				velocity_msg.angular.x  = 0
-				velocity_msg.angular.y  = 0
 				pub.publish(velocity_msg)
 
-				# log iteration 
-				# print("Controller message pushed at {}".format(rospy.get_time()))
-
-				# zzz for <_rate>hz  
-				rate.sleep()
-				print("[INFO] Reached goal {} of {}: {}".format(
-					 _num_wp - len(waypoint_buffer), _num_wp, goal_pose))
-				
-				if(_num_wp == 1):
-					print("[INFO] Trajectory executed, planning final goal")
-
+			print("Controller message pushed at {}".format(rospy.get_time()))
+			rate.sleep()					
+		
 		# stop & break control loop 
 		stop_vel = Twist() 
 		pub.publish(stop_vel)
-		print("[INFO] Reached final goal!")
 		break 
 
 if __name__ == '__main__':
