@@ -2,9 +2,13 @@
 ### Setup
 1. Clone the repository 
 ```bash
-git clone --recurse-submodules https://github.com/sciduck/eyrc.git
+git clone https://github.com/sciduck/eyrc.git
 ```
-2. Build workspace 
+2. Download meshes and models
+```bash
+cd src && bash setup.sh
+```
+3. Build workspace 
 ```bash
 cd eyrc
 catkin build
