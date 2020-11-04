@@ -1,3 +1,7 @@
+# big files 
+models
+meshes
+
 # catkin files 
 build
 devel
