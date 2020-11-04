@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 <!--   ebot -->
     <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ebot_description)/urdf/ebot.xacro'"/>
@@ -10,14 +11,13 @@
 <!-- Argument for spawning location -->
 	<arg name="x" default="0"/>
 	<arg name="y" default="0"/>
-	<arg name="z" default="0"/>
+	<arg name="z" default="0.18"/>
 		
 <!-- Spawn the robot model -->
 	<node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" 
 	    args="-urdf -param robot_description -model ebot -x $(arg x) -y $(arg y) -z $(arg z)" />
 
 <!-- include your navigation launch file  -->		
-
 
 
 <!--Uncomment these lines when you want to submit bag file for task2-->
