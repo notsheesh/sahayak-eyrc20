@@ -3,7 +3,6 @@
 
 <!-- bring up ebot -->
   <include file="$(find ebot_description)/launch/task2.launch" />
-  <!-- <include file="$(find ebot_gazebo)/launch/office_world.launch" /> -->
 
 <!-- set arguments -->
   <arg name="scan_topic"  default="/ebot/laser/scan" />

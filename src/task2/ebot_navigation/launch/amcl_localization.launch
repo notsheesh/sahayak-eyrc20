@@ -1,14 +1,13 @@
+<?xml version="1.0"?>
 <launch>
 
-
 <!-- Map server -->
-<arg name="map_file" default="/home/preet/eyrc1/src/sahayak_bot/map/sample_world.yaml"/>
+<arg name="map_file" default="$(find ebot_gmapping)/outputs/office_world.yaml"/>
 <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
 <arg name="use_map_topic" default="true"/>
 
 <!-- Localization -->
 <node pkg="amcl" type="amcl" name="amcl" output="screen">
-
   <remap from="scan" to="/ebot/laser/scan" />
   <remap from="cmd_vel" to="cmd_vel"/>
   <remap from="odom" to="odom" />
