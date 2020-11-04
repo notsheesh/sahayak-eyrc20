@@ -1,12 +1,21 @@
+<?xml version="1.0"?>
 <launch>
+
+<!-- bring up ebot -->
+  <include file="$(find ebot_description)/launch/task2.launch" />
+
+<!-- set arguments -->
   <arg name="scan_topic"  default="/ebot/laser/scan" />
   <arg name="base_frame"  default="ebot_base"/>
   <arg name="odom_frame"  default="odom"/>
 
+<!-- robot state publisher -->
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"></node>
 
+<!-- start rviz -->
   <node pkg="rviz" type="rviz" name="rviz"></node>
 
+<!-- start gmapping node -->
   <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
     <param name="base_frame" value="$(arg base_frame)"/>
     <param name="odom_frame" value="$(arg odom_frame)"/>
@@ -31,12 +40,13 @@
     <param name="temporalUpdate" value="-1.0"/>
     <param name="resampleThreshold" value="0.5"/>
     <param name="particles" value="80"/>
+
+<!-- Will affect computation memory -->
   <!--
     <param name="xmin" value="-50.0"/>
     <param name="ymin" value="-50.0"/>
     <param name="xmax" value="50.0"/>
     <param name="ymax" value="50.0"/>
-  make the starting size small for the benefit of the Android client's memory...
   -->
     <param name="xmin" value="-1.0"/>
     <param name="ymin" value="-1.0"/>
@@ -50,4 +60,5 @@
     <param name="lasamplestep" value="0.005"/>
     <remap from="scan" to="$(arg scan_topic)"/>
   </node>
+  
 </launch>
