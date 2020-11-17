@@ -13,6 +13,10 @@ cd src && sudo bash setup.sh
 cd eyrc
 catkin build
 ```
+4. For task2
+```bash
+roslaunch ebot_description task2.launch
+```
 
 ### Note:
 1. You check for changes while you were away 
