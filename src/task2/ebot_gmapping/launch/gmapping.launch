@@ -23,7 +23,6 @@
     type="joint_state_publisher" 
   />
 
-
 <!-- start rviz -->
   <node 
     pkg="rviz" 

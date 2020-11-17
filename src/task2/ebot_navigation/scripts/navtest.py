@@ -9,7 +9,7 @@ import actionlib
 # Brings in the .action file and messages used by the move base action
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 waypoint = []
-waypoint = [[0,0],[-9.1, -1.2],[10.7, 10.5], [12.6, -1.9],[18.2, -1.4], [-2, 4.]]
+waypoint = [[0,0],[-9.1, -1.2],[10.7, 10.5], [12.6, -1.9],[18.2, -1.4], [-2, 4.0]]
 reach_way = []
 
 i = 0
@@ -27,6 +27,7 @@ while(i<6):
       waypoint[i][0], 
       waypoint[i][1], 
       euler_from_quaternion([x, y, 0, w])[2]
+      
         ]
   reach_way.append(pose)
   i = i+1
@@ -49,7 +50,7 @@ def movebase_client():
           goal.target_pose.pose.position.x = reach_way[0][0]
          # No rotation of the mobile base frame w.r.t. map frame
           goal.target_pose.pose.orientation.w =reach_way[0][2]
-          goal.target_pose.pose.position.y = waypoint[0][1]
+          goal.target_pose.pose.position.y = reach_way[0][1]
          # No rotation of the mobile base frame w.r.t. map frame
           #goal.target_pose.pose.orientation.w = 1.0
          # Sends the goal to the action server.

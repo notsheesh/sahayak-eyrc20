@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- Map server -->
+<master auto="start" />
+<arg 
+  name="map_file" 
+  default="$(find ebot_gmapping)/outputs/office.yaml"
+  />
+
+<node 
+  name="map_server" 
+  pkg="map_server" 
+  type="map_server" 
+  args="$(arg map_file)" 
+  />
+
+<arg 
+  name="use_map_topic" 
+  default="true" />
+
+</launch>

@@ -2,24 +2,26 @@
 <launch>
 
   <!-- parent launch -->
-    <include file="$(find ebot_description)/launch/task2.launch" />
-
-  <!-- localization -->
-    <include file="$(find ebot_navigation)/launch/amcl.launch" />
+  <!-- <include file="$(find ebot_description)/launch/task2.launch" /> -->
 
   <!-- rviz -->
     <include file="$(find ebot_description)/launch/ebot_visualize.launch"/>
 
+  <!-- load map -->
+	<include file="$(find ebot_navigation)/launch/map.launch" />
+	
+  <!-- localization -->
+    <include file="$(find ebot_navigation)/launch/amcl.launch" />
+    
   <!-- Move base -->
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam file="$(find ebot_navigation)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="$(find ebot_navigation)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
-    <rosparam file="$(find ebot_navigation)/config/local_costmap_params.yaml" command="load" />
-    <rosparam file="$(find ebot_navigation)/config/global_costmap_params.yaml" command="load" />
-    <rosparam file="$(find ebot_navigation)/config/trajectory_planner.yaml" command="load" />
+    <include file="$(find ebot_navigation)/launch/movebase.launch" />
 
-    <param name="move_base/DWAPlannerROS/yaw_goal_tolerance" value="1.0"/>
-    <param name="move_base/DWAPlannerROS/xy_goal_tolerance" value="1.0"/>
+  <!-- Way point buffer -->
+  	<node
+  		name = "waypoints"
+  		pkg  = "ebot_navigation"
+  		type = "navtest.py" 
+  		output = "screen"
+	/>
 
-  </node>
 </launch>
