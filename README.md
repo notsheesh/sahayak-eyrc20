@@ -6,12 +6,16 @@ git clone https://github.com/sciduck/eyrc.git
 ```
 2. Download meshes and models
 ```bash
-cd src && bash setup.sh
+cd src && sudo bash setup.sh
 ```
 3. Build workspace 
 ```bash
 cd eyrc
 catkin build
+```
+4. For task2
+```bash
+roslaunch ebot_description task2.launch
 ```
 
 ### Note:
