@@ -14,14 +14,14 @@
     <include file="$(find ebot_navigation)/launch/amcl.launch" />
     
   <!-- Move base -->
-    <include file="$(find ebot_navigation)/launch/movebase.launch" />
+    <!-- <include file="$(find ebot_navigation)/launch/movebase.launch" /> -->
 
   <!-- Way point buffer -->
-  	<node
+<!--   	<node
   		name = "waypoints"
   		pkg  = "ebot_navigation"
   		type = "navtest.py" 
   		output = "screen"
 	/>
-
+ -->
 </launch>
