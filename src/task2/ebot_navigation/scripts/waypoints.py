@@ -25,7 +25,12 @@ class MoveBaseSeq():
         
         self.pose_seq = list()
 
-        self.   pose_seq = [ [0, 0],[-9.1, -1.2],[10.7, 10.5], [12.6, -1.9],[18.2, -1.4], [-2, 4.] ]
+        self.   pose_seq = [[0,     0],
+                            [-9.1, -1.2],
+                            [10.7, 10.5],
+                            [12.6, -1.9],
+                            [18.2, -1.4],
+                            [-2,    4.]]
         self.goal_cnt = 0
         for yawangle in yaweulerangles_seq:
             #Unpacking the quaternion list and passing it as arguments to Quaternion message constructor

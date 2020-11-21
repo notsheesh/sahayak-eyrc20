@@ -23,12 +23,10 @@
     
 <!--runnning rviz node-->
     <!-- <node name="rviz" pkg="rviz" type="rviz" /> -->
-
-<!-- saving rviz configurations in a rviz folder -->
     <node 
     	name="rviz" 
     	pkg="rviz" 
     	type="rviz"   
     	args=" -d $(find ebot_description)/rviz/visualize.rviz" />
-    
+        
 </launch>
