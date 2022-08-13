@@ -2,7 +2,7 @@
 ### Setup
 1. Clone the repository 
 ```bash
-git clone https://github.com/sciduck/eyrc.git
+git clone https://github.com/ntr0pie/eyrc.git
 ```
 2. Download meshes and models
 ```bash
